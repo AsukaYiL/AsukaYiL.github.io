@@ -4,13 +4,25 @@
   
   
   <entry>
-    <title>你的文章标题</title>
+    <title>从-1开始的艺术——记SQL整数型注入初试</title>
     <link href="/2026/11/02/%E4%BB%8E-1%E5%BC%80%E5%A7%8B%E7%9A%84%E8%89%BA%E6%9C%AF%E2%80%94%E2%80%94%E8%AE%B0SQL%E6%95%B4%E6%95%B0%E5%9E%8B%E6%B3%A8%E5%85%A5%E5%88%9D%E8%AF%95/"/>
     <url>/2026/11/02/%E4%BB%8E-1%E5%BC%80%E5%A7%8B%E7%9A%84%E8%89%BA%E6%9C%AF%E2%80%94%E2%80%94%E8%AE%B0SQL%E6%95%B4%E6%95%B0%E5%9E%8B%E6%B3%A8%E5%85%A5%E5%88%9D%E8%AF%95/</url>
     
     <content type="html"><![CDATA[]]></content>
     
     
+    <categories>
+      
+      <category>CTF</category>
+      
+    </categories>
+    
+    
+    <tags>
+      
+      <tag>SQL注入</tag>
+      
+    </tags>
     
   </entry>
   
