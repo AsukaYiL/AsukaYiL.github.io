@@ -1,0 +1,910 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/fluid.png">
+  <link rel="icon" href="/img/fluid.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="AsukaYi">
+  <meta name="keywords" content="">
+  
+    <meta name="description" content="QQ 流量分析：TCP 还是 UDP，加密还是明文。作业要求针对自己使用的 QQ，判断它走 UDP 还是 TCP、加密还是明文，并尝试用文件头特征码还原可能明文传输的文件。下面是在 WLAN 网卡上抓了 180 秒得到的结论。  一、先解决“怎么找到 QQ 的流量”这一步比想象中麻烦。第一版抓包里 5000 多个帧，按域名一筛，只有 api.deepseek.com、interfacepc.mu">
+<meta property="og:type" content="article">
+<meta property="og:title" content="抓包QQ消息实验">
+<meta property="og:url" content="https://asukayil.github.io/2026/11/22/%E6%8A%93%E5%8C%85QQ%E6%B6%88%E6%81%AF%E5%AE%9E%E9%AA%8C/index.html">
+<meta property="og:site_name" content="AsukaYi的博客">
+<meta property="og:description" content="QQ 流量分析：TCP 还是 UDP，加密还是明文。作业要求针对自己使用的 QQ，判断它走 UDP 还是 TCP、加密还是明文，并尝试用文件头特征码还原可能明文传输的文件。下面是在 WLAN 网卡上抓了 180 秒得到的结论。  一、先解决“怎么找到 QQ 的流量”这一步比想象中麻烦。第一版抓包里 5000 多个帧，按域名一筛，只有 api.deepseek.com、interfacepc.mu">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-11-22T10:59:55.000Z">
+<meta property="article:modified_time" content="2026-11-22T12:20:55.501Z">
+<meta property="article:author" content="AsukaYi">
+<meta property="article:tag" content="Wireshark">
+<meta property="article:tag" content="抓包">
+<meta property="article:tag" content="网络协议">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>抓包QQ消息实验 - AsukaYi的博客</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"asukayil.github.io","root":"/","version":"1.9.9","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"expand_all":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":false,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"openkounter":{"server_url":"https://open-kounter.mintimate.cn","path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 8.1.2"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>AsukaYi的博客</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content (desktop) -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<!-- Mobile grid menu overlay -->
+<div id="mobile-grid-menu" class="d-lg-none">
+  <div class="mobile-grid-menu-inner">
+    <div class="container">
+      <div class="row">
+        
+          
+          
+          
+          
+            <div class="col-4 mobile-grid-cell">
+              <a href="/" target="_self">
+                <div class="mobile-grid-item">
+                  <i class="iconfont icon-home-fill"></i>
+                  <span>首页</span>
+                </div>
+              </a>
+            </div>
+          
+        
+          
+          
+          
+          
+            <div class="col-4 mobile-grid-cell">
+              <a href="/archives/" target="_self">
+                <div class="mobile-grid-item">
+                  <i class="iconfont icon-archive-fill"></i>
+                  <span>归档</span>
+                </div>
+              </a>
+            </div>
+          
+        
+          
+          
+          
+          
+            <div class="col-4 mobile-grid-cell">
+              <a href="/categories/" target="_self">
+                <div class="mobile-grid-item">
+                  <i class="iconfont icon-category-fill"></i>
+                  <span>分类</span>
+                </div>
+              </a>
+            </div>
+          
+        
+          
+          
+          
+          
+            <div class="col-4 mobile-grid-cell">
+              <a href="/about/" target="_self">
+                <div class="mobile-grid-item">
+                  <i class="iconfont icon-user-fill"></i>
+                  <span>关于</span>
+                </div>
+              </a>
+            </div>
+          
+        
+        
+          <div class="col-4 mobile-grid-cell" id="mobile-search-btn">
+            <a href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <div class="mobile-grid-item">
+                <i class="iconfont icon-search"></i>
+                <span>搜索</span>
+              </div>
+            </a>
+          </div>
+        
+        
+          <div class="col-4 mobile-grid-cell" id="mobile-color-toggle-btn"
+               data-label-light="开灯"
+               data-label-dark="关灯">
+            <a href="javascript:;" aria-label="Color Toggle">
+              <div class="mobile-grid-item">
+                <i class="iconfont icon-dark" id="mobile-color-toggle-icon"></i>
+                <span id="mobile-color-toggle-label">关灯</span>
+              </div>
+            </a>
+          </div>
+        
+      </div>
+    </div>
+  </div>
+</div>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/default.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="抓包QQ消息实验"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2026-11-22 18:59" pubdate>
+          2026年11月22日 晚上
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          1.9k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          17 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">抓包QQ消息实验</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <blockquote>
+<p>QQ 流量分析：TCP 还是 UDP，加密还是明文。<br>作业要求针对自己使用的 QQ，判断它走 UDP 还是 TCP、加密还是明文，并尝试用文件头特征码还原可能明文传输的文件。下面是在 WLAN 网卡上抓了 180 秒得到的结论。</p>
+</blockquote>
+<h2 id="一、先解决“怎么找到-QQ-的流量”"><a href="#一、先解决“怎么找到-QQ-的流量”" class="headerlink" title="一、先解决“怎么找到 QQ 的流量”"></a>一、先解决“怎么找到 QQ 的流量”</h2><p>这一步比想象中麻烦。第一版抓包里 5000 多个帧，按域名一筛，只有 <code>api.deepseek.com</code>、<code>interfacepc.music.163.com</code>、<code>ilinkai.weixin.qq.com</code> 这些——一条 QQ 都没有。</p>
+<p>原因是：QQ 的 TLS 连接不带 SNI。抓包里那条 <code>113.240.74.16:443</code> 的 ClientHello 里，SNI 字段是空的，用 <code>tls.handshake.extensions_server_name contains &quot;qq&quot;</code> 这种过滤条件永远筛不出来。</p>
+<p>换个思路：不去猜域名，直接问操作系统“QQ 这个进程连到哪”。用 <code>Get-NetTCPConnection -OwningProcess &lt;QQ的PID&gt;</code> 一查，答案就出来了：</p>
+<table>
+<thead>
+<tr>
+<th>LocalAddress</th>
+<th>LocalPort</th>
+<th>RemoteAddress</th>
+<th>RemotePort</th>
+<th>State</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>10.34.94.23</td>
+<td>9794</td>
+<td>113.240.74.16</td>
+<td>443</td>
+<td>Established</td>
+</tr>
+<tr>
+<td>10.34.94.23</td>
+<td>1128</td>
+<td>157.255.5.104</td>
+<td>80</td>
+<td>Established</td>
+</tr>
+</tbody></table>
+<p>同时 <code>Get-NetUDPEndpoint</code> 对 QQ 的所有进程返回空——它一个 UDP 端点都没开。</p>
+<p>有了这两个 IP，再回到 Wireshark 用 <code>ip.addr==113.240.74.16 or ip.addr==157.255.5.104</code> 过滤，QQ 的流量就全部露出来了，一共两条会话。</p>
+<h2 id="二、结论一：走-TCP，不走-UDP"><a href="#二、结论一：走-TCP，不走-UDP" class="headerlink" title="二、结论一：走 TCP，不走 UDP"></a>二、结论一：走 TCP，不走 UDP</h2><table>
+<thead>
+<tr>
+<th>指标</th>
+<th>数值</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>抓包总量</td>
+<td>5788 帧 &#x2F; 5.18 MB（180 秒）</td>
+</tr>
+<tr>
+<td>TCP</td>
+<td>5757 帧</td>
+</tr>
+<tr>
+<td>UDP</td>
+<td>仅 26 帧（DNS 13、QUIC 5、杂项 8）</td>
+</tr>
+<tr>
+<td>QQ 会话</td>
+<td>2 条，都是 TCP</td>
+</tr>
+</tbody></table>
+<p>UDP 那 26 帧全部来自其他应用（DNS 查询、DeepSeek 和微信的 QUIC），与 QQ 无关。</p>
+<p>所以答案很明确：现代 QQ 的通信以 TCP 为主。老资料里常说的“OICQ 走 UDP 8000 端口”，那是二十年前的协议，现在已经不用了。</p>
+<h2 id="三、结论二：全程加密"><a href="#三、结论二：全程加密" class="headerlink" title="三、结论二：全程加密"></a>三、结论二：全程加密</h2><p>两条会话用了两套完全不同的加密方式。</p>
+<p><strong>443 端口这条是标准 TLS：</strong></p>
+<table>
+<thead>
+<tr>
+<th>项目</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>版本</td>
+<td>TLS 1.2</td>
+</tr>
+<tr>
+<td>SNI</td>
+<td>tpstelemetry.tencent.com</td>
+</tr>
+<tr>
+<td>证书主体</td>
+<td>Tencent Technology (Shenzhen) Company Limited，DigiCert 签发</td>
+</tr>
+<tr>
+<td>包数 &#x2F; 字节</td>
+<td>20 个包 &#x2F; 7352 字节</td>
+</tr>
+</tbody></table>
+<p><strong>80 端口这条不是 TLS，是 QQ 自己的私有协议：</strong></p>
+<ul>
+<li>共 67 个包 &#x2F; 21015 字节</li>
+<li>报文开头有固定结构：前 4 字节 <code>00 00 01 20</code>，换成十进制正好 288，就是该包的长度；随后是一个长度前缀包裹的 ASCII 串 <code>3471161328F…</code>，再往后就是二进制数据</li>
+</ul>
+<p>把这条流去掉 TCP&#x2F;IP 头之后的载荷拼起来，一共 17647 字节，算了一下：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs text">Shannon 熵 = 7.857 bits/byte   （理论上限 8.000）<br>可打印字符占比 = 38.8%<br></code></pre></td></tr></table></figure>
+
+<p>7.86&#x2F;8 的熵意味着这段数据跟随机数几乎无法区分——也就是确定被加密或压缩过。虽然它跑在 80 这个“明文档口”上，但业务层自己加了密，Wireshark 里除了长度和时序，什么也读不出来。</p>
+<h2 id="四、结论三：没有可还原的明文文件"><a href="#四、结论三：没有可还原的明文文件" class="headerlink" title="四、结论三：没有可还原的明文文件"></a>四、结论三：没有可还原的明文文件</h2><p>作业提到用文件头做特征码，几种常见格式的魔数：</p>
+<table>
+<thead>
+<tr>
+<th>格式</th>
+<th>特征码</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>JPEG</td>
+<td>FF D8 FF</td>
+</tr>
+<tr>
+<td>PNG</td>
+<td>89 50 4E 47</td>
+</tr>
+<tr>
+<td>ZIP</td>
+<td>50 4B 03 04</td>
+</tr>
+<tr>
+<td>GIF</td>
+<td>47 49 46 38</td>
+</tr>
+</tbody></table>
+<p>我对整份抓包的所有 TCP 载荷做了扫描，四个特征码一个都没命中。又用 Wireshark 的“导出 HTTP 对象”试了一次，只导出 4 个几百字节的文件，看内容是微信 MMTLS 的加密请求体，不是真正的文件。</p>
+<p>原因很直接：QQ 发文件不走“明文直传”。文件先加密上传到腾讯的服务器，对方再从服务器下载，两端之间根本没有一条“文件字节流”过网。所以无论抓多久，都不可能用魔数把文件捞出来。</p>
+<p>这也反过来印证了第二节的结论：在现代即时通讯里，“从抓包里还原文件”这条路基本被堵死了，除非对方用的是老式 HTTP 直传或明文 FTP。</p>
+<h2 id="五、PC-端和手机端的区别"><a href="#五、PC-端和手机端的区别" class="headerlink" title="五、PC 端和手机端的区别"></a>五、PC 端和手机端的区别</h2><p>同一账号从 PC 发给 PC、还是 PC 发给手机，在线路上看不出区别。两条路径都是“客户端 → 腾讯服务器 → 另一个客户端”，服务端中转，不是点对点直连。所以抓包只能看到自己这一端和服务器之间的流量，看不到对方。</p>
+<h2 id="六、关于隐私"><a href="#六、关于隐私" class="headerlink" title="六、关于隐私"></a>六、关于隐私</h2><p>整份抓包和分析只在本机完成，样本文件没有外传。其中 <code>10.34.94.23</code> 是本地局域网地址，腾讯服务器的公网 IP 是公开可查的。聊天内容全程加密，本来也读不到。</p>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/%E7%BD%91%E7%BB%9C%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/" class="category-chain-item">网络渗透测试</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/Wireshark/" class="print-no-link">#Wireshark</a>
+      
+        <a href="/tags/%E6%8A%93%E5%8C%85/" class="print-no-link">#抓包</a>
+      
+        <a href="/tags/%E7%BD%91%E7%BB%9C%E5%8D%8F%E8%AE%AE/" class="print-no-link">#网络协议</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>抓包QQ消息实验</div>
+      <div>https://asukayil.github.io/2026/11/22/抓包QQ消息实验/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>AsukaYi</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2026年11月22日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/2026/11/22/ch6%EF%BC%9A%E4%B8%80%E5%8F%A5%E8%AF%9D%E6%9C%A8%E9%A9%AC/" title="ch6：一句话木马">
+                        <span class="hidden-mobile">ch6：一句话木马</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    function isExpandAllEnabled() {
+      return CONFIG.toc && CONFIG.toc.expand_all === true;
+    }
+    function expandAllToc() {
+      if (!isExpandAllEnabled()) { return; }
+      jQuery('#toc-body .tocbot-is-collapsed').removeClass('tocbot-is-collapsed');
+    }
+    function updateTocToggle($li, $childList) {
+      var $toggle = $li.children('.toc-toggle');
+      if ($toggle.length === 0) { return; }
+      var collapsed = $childList.hasClass('tocbot-is-collapsed');
+      $toggle
+        .toggleClass('toc-toggle-collapsed', collapsed)
+        .toggleClass('toc-toggle-expanded', !collapsed);
+    }
+    function bindTocToggle() {
+      if (!isExpandAllEnabled()) { return; }
+      jQuery('#toc-body .toc-list-item').each(function() {
+        var $li = jQuery(this);
+        var $childList = $li.children('ol');
+        if ($childList.length === 0) {
+          if ($li.children('.toc-toggle').length === 0) {
+            $li.prepend('<span class="toc-toggle toc-toggle-placeholder" aria-hidden="true">›</span>');
+          }
+          return;
+        }
+
+        if ($li.children('.toc-toggle').length === 0) {
+          $li.prepend('<span class="toc-toggle toc-toggle-expanded" aria-hidden="true">›</span>');
+        }
+        updateTocToggle($li, $childList);
+      });
+      jQuery('#toc-body').off('click.tocToggle').on('click.tocToggle', '.toc-toggle', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var $li = jQuery(this).parent('.toc-list-item');
+        var $childList = $li.children('ol');
+        if ($childList.length === 0) { return; }
+        $childList.toggleClass('tocbot-is-collapsed');
+        updateTocToggle($li, $childList);
+      });
+      if (!window.__tocToggleObserver) {
+        window.__tocToggleObserver = new MutationObserver(function(mutations) {
+          mutations.forEach(function(mutation) {
+            if (mutation.type !== 'attributes' || mutation.attributeName !== 'class') { return; }
+            var $list = jQuery(mutation.target);
+            var $li = $list.parent('.toc-list-item');
+            if ($li.length === 0) { return; }
+            updateTocToggle($li, $list);
+          });
+        });
+        jQuery('#toc-body ol').each(function() {
+          window.__tocToggleObserver.observe(this, { attributes: true });
+        });
+      }
+    }
+    var tocConfig = Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc);
+    if (isExpandAllEnabled()) {
+      tocConfig.collapseDepth = 6;
+    }
+    window.tocbot.init(tocConfig);
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+    expandAllToc();
+    bindTocToggle();
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+        expandAllToc();
+        bindTocToggle();
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>
