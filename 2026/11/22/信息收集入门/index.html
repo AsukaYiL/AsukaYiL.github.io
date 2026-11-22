@@ -76,7 +76,7 @@
   <script id="fluid-configs">
     var Fluid = window.Fluid || {};
     Fluid.ctx = Object.assign({}, Fluid.ctx)
-    var CONFIG = {"hostname":"asukayil.github.io","root":"/","version":"1.9.9","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"expand_all":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"openkounter":{"server_url":"https://open-kounter.mintimate.cn","path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+    var CONFIG = {"hostname":"asukayil.github.io","root":"/","version":"1.9.9","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"expand_all":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":false,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"openkounter":{"server_url":"https://open-kounter.mintimate.cn","path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
 
     if (CONFIG.web_analytics.follow_dnt) {
       var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
@@ -361,8 +361,8 @@
                 
                 <h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>信息收集是渗透测试的第一步，本文采用了ZoomEye，在不接触目标的前提下，摸清一个域名的资产结构。</p>
 <h2 id="一-同类的收索引擎"><a href="#一-同类的收索引擎" class="headerlink" title="一.同类的收索引擎"></a>一.同类的收索引擎</h2><p>ZoomEye——知道创宇：国内资产全<br>FOFA——白帽汇：指法灵活<br>Quake——奇安信：协议识别细致，非HTTP服务覆盖好<br>Shodan——国外：老牌引擎，全球覆盖好<br>Censys——国外：数据严谨，有学术额度<br>ps：各家的扫描频率与覆盖的协议不同，造成同一结果数量有明显差异</p>
-<h2 id="二-如何使用钟馗之眼"><a href="#二-如何使用钟馗之眼" class="headerlink" title="二.如何使用钟馗之眼"></a>二.如何使用钟馗之眼</h2><p>1.在ZoomEye搜索框输入<br>app&#x3D;”nginx”&amp;&amp;country&#x3D;”CN”<br>结果如下图<br><img src="/images/1.png" srcset="/img/loading.gif" lazyload alt="卡了"><br>由此我们就得到了访问入口（该主机开放的端口与协议），归属地（由ip库反查可得），组织（ip所属的云服务商），ASN（阿里云的自治系统号），标题（从HTML<title>提取），更新时间（即该条纪录最近一次别探测的时间）</p>
-<h2 id="三-子域名收集"><a href="#三-子域名收集" class="headerlink" title="三.子域名收集"></a>三.子域名收集</h2><p>钟馗之眼除了按组件检索，还能按域名维度枚举一个主域名下所有资产，在搜索框输入<br>site&#x3D;”qq.com”<br><img src="/images/2.png" srcset="/img/loading.gif" lazyload alt="卡了"><br>如上图所示，页面显示约有312条结果，[搜索类型]中网站数量为16199台。列表中的主机全都是qq.com的子域名。<br>每条记录都给出了三级信息：子域名，开放端口与协议，IP归属与组织，并附带HTTP相应头。这意味着一次查询就能把“域名清单”直接变成“资产清单”，而且全程没有向目标发送任何流量——数据来自引擎的历史索引。</p>
+<h2 id="二-如何使用钟馗之眼"><a href="#二-如何使用钟馗之眼" class="headerlink" title="二.如何使用钟馗之眼"></a>二.如何使用钟馗之眼</h2><p>1.在ZoomEye搜索框输入<br>app&#x3D;”nginx”&amp;&amp;country&#x3D;”CN”<br>结果如下图<br><img src="/images/1.png" alt="卡了"><br>由此我们就得到了访问入口（该主机开放的端口与协议），归属地（由ip库反查可得），组织（ip所属的云服务商），ASN（阿里云的自治系统号），标题（从HTML<title>提取），更新时间（即该条纪录最近一次别探测的时间）</p>
+<h2 id="三-子域名收集"><a href="#三-子域名收集" class="headerlink" title="三.子域名收集"></a>三.子域名收集</h2><p>钟馗之眼除了按组件检索，还能按域名维度枚举一个主域名下所有资产，在搜索框输入<br>site&#x3D;”qq.com”<br><img src="/images/2.png" alt="卡了"><br>如上图所示，页面显示约有312条结果，[搜索类型]中网站数量为16199台。列表中的主机全都是qq.com的子域名。<br>每条记录都给出了三级信息：子域名，开放端口与协议，IP归属与组织，并附带HTTP相应头。这意味着一次查询就能把“域名清单”直接变成“资产清单”，而且全程没有向目标发送任何流量——数据来自引擎的历史索引。</p>
 <h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>测绘引擎的价值在于“被动”二字：不直接接触目标，也可以从公开索引中还原出技术栈，归属与资产结构。</p>
 <p>##免责声明<br>本文所有查询均基于测绘引擎的公开索引，全程为被动信息收集，未向任何第三方系统发送扫描或攻击流量，仅用于安全学习与资产自查。</p>
 
@@ -611,10 +611,6 @@
 
 
 
-
-  
-    <script  src="/js/img-lazyload.js" ></script>
-  
 
 
 
